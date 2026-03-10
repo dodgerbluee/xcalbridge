@@ -1,0 +1,82 @@
+{% if error %}
+<article class="error-article">
+    <p><strong>Error:</strong> {{ error }}</p>
+</article>
+{% endif %}
+
+{% if events %}
+<article>
+    <header>
+        <strong>Preview: {{ events|length }} event(s) found</strong>
+        {% if events|length == 25 %}
+        <small>(showing first 25)</small>
+        {% endif %}
+    </header>
+    <figure>
+    <table>
+        <thead>
+            <tr>
+                <th>Event</th>
+                <th>Date</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+            <tr>
+                <td>{{ event.event_name }}</td>
+                <td>{{ event.date }}</td>
+                <td>{{ event.start_time or 'All day' }}</td>
+                <td>{{ event.end_time or '-' }}</td>
+                <td>{{ event.location or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </figure>
+</article>
+{% endif %}
+
+{% if columns %}
+<script>
+// Update column mapping dropdowns with detected columns
+(function() {
+    const columns = {{ columns | tojson }};
+    const mapping = {{ mapping | tojson }};
+    const fields = ['col_event_name', 'col_date', 'col_start_time', 'col_end_time', 'col_location', 'col_description'];
+    const mapKeys = ['event_name', 'date', 'start_time', 'end_time', 'location', 'description'];
+
+    fields.forEach(function(fieldId, idx) {
+        const select = document.getElementById(fieldId);
+        if (!select) return;
+
+        // Save current value
+        const currentVal = select.value;
+
+        // Clear existing options (keep first "not mapped" option)
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+
+        // Add detected columns
+        columns.forEach(function(col) {
+            const opt = document.createElement('option');
+            opt.value = col;
+            opt.textContent = col;
+            // Pre-select if auto-detected
+            const mapKey = mapKeys[idx];
+            if (mapping[mapKey] === col) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+    });
+
+    // Open the column mapping section
+    const details = document.getElementById('column-mapping-section');
+    if (details) details.open = true;
+})();
+</script>
+{% endif %}

@@ -1,0 +1,60 @@
+<figure>
+<table role="grid">
+    <thead>
+        <tr>
+            <th scope="col">Name</th>
+            <th scope="col">Source Type</th>
+            <th scope="col">Last Sync</th>
+            <th scope="col">Feed URL</th>
+            <th scope="col">Status</th>
+            <th scope="col">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for source in sources %}
+        <tr>
+            <td><strong>{{ source.name }}</strong></td>
+            <td>{{ source.source_type_display }}</td>
+            <td>
+                {% if source.last_sync %}
+                    <span class="sync-time" title="{{ source.last_sync }}">{{ source.last_sync[:16].replace('T', ' ') }}</span>
+                {% else %}
+                    <span class="muted">Never</span>
+                {% endif %}
+            </td>
+            <td>
+                <code class="feed-url" title="Click to copy">
+                    <a href="{{ source.feed_url }}" target="_blank">{{ source.feed_url }}</a>
+                </code>
+            </td>
+            <td>
+                <span class="status-badge status-{{ source.status }}"
+                      {% if source.status == 'error' and source.error_message %}
+                      title="{{ source.error_message }}"
+                      {% endif %}>
+                    {{ source.status }}
+                </span>
+            </td>
+            <td class="actions">
+                <a href="/sources/{{ source.id }}/edit" class="action-btn" title="Edit">Edit</a>
+                <button class="action-btn outline secondary"
+                        hx-post="/sources/{{ source.id }}/sync"
+                        hx-target="#sources-table"
+                        hx-swap="innerHTML"
+                        title="Sync Now">
+                    Sync
+                </button>
+                <button class="action-btn outline contrast delete-btn"
+                        hx-delete="/sources/{{ source.id }}"
+                        hx-target="#sources-table"
+                        hx-swap="innerHTML"
+                        hx-confirm="Delete '{{ source.name }}'? This will also remove the ICS feed."
+                        title="Delete">
+                    Delete
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</figure>

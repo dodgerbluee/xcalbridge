@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - xCalBridge{% endblock %}
+
+{% block content %}
+<h2>Calendar Sources</h2>
+
+{% if not sources %}
+<article>
+    <p>No calendar sources configured yet.</p>
+    <a href="/sources/new" role="button">Add your first source</a>
+</article>
+{% else %}
+<div id="sources-table">
+    {% include "partials/sources_table.html" %}
+</div>
+{% endif %}
+{% endblock %}

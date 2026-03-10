@@ -1,0 +1,113 @@
+/* xCalBridge — Custom Styles */
+
+/* Override some Pico defaults for a tighter dashboard feel */
+
+:root {
+    --pico-font-size: 16px;
+}
+
+/* Header */
+header.container nav {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Status badges */
+.status-badge {
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.status-synced {
+    background: #2ecc40;
+    color: #fff;
+}
+
+.status-pending {
+    background: #adb5bd;
+    color: #fff;
+}
+
+.status-syncing {
+    background: #ffbe0b;
+    color: #333;
+}
+
+.status-error {
+    background: #e63946;
+    color: #fff;
+    cursor: help;
+}
+
+/* Action buttons in table */
+.actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.action-btn {
+    font-size: 0.8em;
+    padding: 0.3em 0.6em;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.delete-btn {
+    --pico-color: #e63946;
+    --pico-border-color: #e63946;
+}
+
+/* Feed URL code blocks */
+.feed-url {
+    font-size: 0.85em;
+    word-break: break-all;
+}
+
+.feed-url a {
+    text-decoration: none;
+}
+
+/* Muted text */
+.muted {
+    color: var(--pico-muted-color);
+    font-style: italic;
+}
+
+/* Preview container */
+.preview-container {
+    margin-top: 1rem;
+}
+
+.error-article {
+    border-left: 4px solid #e63946;
+}
+
+.error-msg {
+    color: #e63946;
+}
+
+/* Table responsiveness */
+figure {
+    overflow-x: auto;
+}
+
+/* Footer */
+footer.container {
+    text-align: center;
+    padding: 1rem 0;
+    border-top: 1px solid var(--pico-muted-border-color);
+    margin-top: 2rem;
+}
+
+/* Sync time display */
+.sync-time {
+    font-size: 0.85em;
+    white-space: nowrap;
+}

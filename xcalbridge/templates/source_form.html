@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}{% if edit %}Edit{% else %}Add{% endif %} Source - xCalBridge{% endblock %}
+
+{% block content %}
+<h2>{% if edit %}Edit Source: {{ source.name }}{% else %}Add Calendar Source{% endif %}</h2>
+
+<form method="post"
+      action="{% if edit %}/sources/{{ source.id }}/update{% else %}/sources/create{% endif %}"
+      enctype="multipart/form-data">
+
+    <!-- Name -->
+    <label for="name">
+        Calendar Name
+        <input type="text" id="name" name="name"
+               value="{{ source.name if source else '' }}"
+               placeholder="e.g. Natalie Softball"
+               required>
+    </label>
+
+    <!-- Source Type -->
+    <label for="source_type">
+        Source Type
+        <select id="source_type" name="source_type" required
+                onchange="toggleSourceFields()">
+            <option value="">Select source type...</option>
+            <option value="excel_upload" {% if source and source.source_type == 'excel_upload' %}selected{% endif %}>
+                Excel Upload (.xlsx)
+            </option>
+            <option value="csv_upload" {% if source and source.source_type == 'csv_upload' %}selected{% endif %}>
+                CSV Upload
+            </option>
+            <option value="excel_url" {% if source and source.source_type == 'excel_url' %}selected{% endif %}>
+                Excel URL
+            </option>
+            <option value="csv_url" {% if source and source.source_type == 'csv_url' %}selected{% endif %}>
+                CSV URL
+            </option>
+        </select>
+    </label>
+
+    <!-- Source URL (for URL types) -->
+    <div id="url-field" style="display: none;">
+        <label for="source_url">
+            Source URL
+            <input type="url" id="source_url" name="source_url"
+                   value="{{ source.source_url if source and source.source_url else '' }}"
+                   placeholder="https://example.com/schedule.xlsx">
+        </label>
+    </div>
+
+    <!-- File Upload (for upload types) -->
+    <div id="file-field" style="display: none;">
+        <label for="file">
+            Upload File
+            {% if edit and source.upload_filename %}
+            <small>(Current: {{ source.upload_filename }})</small>
+            {% endif %}
+            <input type="file" id="file" name="file"
+                   accept=".xlsx,.csv,.xls">
+        </label>
+    </div>
+
+    <!-- Preview Button -->
+    <div id="preview-section">
+        <button type="button" class="outline secondary"
+                id="preview-btn"
+                onclick="previewEvents()">
+            Preview Events
+        </button>
+        <div id="preview-results" class="preview-container"></div>
+    </div>
+
+    <!-- Column Mapping -->
+    <details id="column-mapping-section" {% if mapping and mapping.get('date') %}open{% endif %}>
+        <summary>Column Mapping</summary>
+        <p><small>Map your spreadsheet columns to calendar event fields. Use the Preview button above to auto-detect columns.</small></p>
+
+        <div class="grid">
+            <label>
+                Event Name
+                <select name="col_event_name" id="col_event_name">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('event_name') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Date (required)
+                <select name="col_date" id="col_date">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('date') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <div class="grid">
+            <label>
+                Start Time
+                <select name="col_start_time" id="col_start_time">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('start_time') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                End Time
+                <select name="col_end_time" id="col_end_time">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('end_time') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <div class="grid">
+            <label>
+                Location
+                <select name="col_location" id="col_location">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('location') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Description
+                <select name="col_description" id="col_description">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('description') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+    </details>
+
+    <!-- Submit -->
+    <div class="grid">
+        <button type="submit">{% if edit %}Update{% else %}Create{% endif %} Source</button>
+        <a href="/" role="button" class="outline secondary">Cancel</a>
+    </div>
+</form>
+
+<script>
+function toggleSourceFields() {
+    const sourceType = document.getElementById('source_type').value;
+    const urlField = document.getElementById('url-field');
+    const fileField = document.getElementById('file-field');
+
+    urlField.style.display = ['excel_url', 'csv_url'].includes(sourceType) ? 'block' : 'none';
+    fileField.style.display = ['excel_upload', 'csv_upload'].includes(sourceType) ? 'block' : 'none';
+}
+
+function previewEvents() {
+    const form = document.querySelector('form');
+    const formData = new FormData();
+    const sourceType = document.getElementById('source_type').value;
+
+    if (!sourceType) {
+        alert('Please select a source type first');
+        return;
+    }
+
+    formData.append('source_type', sourceType);
+
+    if (['excel_url', 'csv_url'].includes(sourceType)) {
+        const url = document.getElementById('source_url').value;
+        if (!url) {
+            alert('Please enter a source URL');
+            return;
+        }
+        formData.append('source_url', url);
+    } else {
+        const fileInput = document.getElementById('file');
+        if (!fileInput.files.length) {
+            alert('Please select a file');
+            return;
+        }
+        formData.append('file', fileInput.files[0]);
+    }
+
+    const btn = document.getElementById('preview-btn');
+    btn.setAttribute('aria-busy', 'true');
+    btn.textContent = 'Parsing...';
+
+    fetch('/preview', { method: 'POST', body: formData })
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById('preview-results').innerHTML = html;
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Preview Events';
+        })
+        .catch(err => {
+            document.getElementById('preview-results').innerHTML =
+                '<p class="error-msg">Preview failed: ' + err.message + '</p>';
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Preview Events';
+        });
+}
+
+// Initialize field visibility on page load
+toggleSourceFields();
+</script>
+{% endblock %}
