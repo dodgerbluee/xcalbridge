@@ -138,6 +138,29 @@
                 </select>
             </label>
         </div>
+
+        <div class="grid">
+            <label>
+                Home Team
+                <select name="col_home_team" id="col_home_team">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('home_team') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>
+                Away Team
+                <select name="col_away_team" id="col_away_team">
+                    <option value="">-- Not mapped --</option>
+                    {% for col in columns %}
+                    <option value="{{ col }}" {% if mapping.get('away_team') == col %}selected{% endif %}>{{ col }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <p><small>If Home Team and Away Team are mapped, the app auto-generates event names like "vs Opponent" (home) or "@ Opponent" (away).</small></p>
     </details>
 
     <!-- Submit -->

@@ -45,8 +45,8 @@
 (function() {
     const columns = {{ columns | tojson }};
     const mapping = {{ mapping | tojson }};
-    const fields = ['col_event_name', 'col_date', 'col_start_time', 'col_end_time', 'col_location', 'col_description'];
-    const mapKeys = ['event_name', 'date', 'start_time', 'end_time', 'location', 'description'];
+    const fields = ['col_event_name', 'col_date', 'col_start_time', 'col_end_time', 'col_location', 'col_description', 'col_home_team', 'col_away_team'];
+    const mapKeys = ['event_name', 'date', 'start_time', 'end_time', 'location', 'description', 'home_team', 'away_team'];
 
     fields.forEach(function(fieldId, idx) {
         const select = document.getElementById(fieldId);

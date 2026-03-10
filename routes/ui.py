@@ -109,6 +109,8 @@ async def create_source_form(
     col_end_time: Optional[str] = Form(None),
     col_location: Optional[str] = Form(None),
     col_description: Optional[str] = Form(None),
+    col_home_team: Optional[str] = Form(None),
+    col_away_team: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
 ) -> RedirectResponse:
     slug = slugify(name)
@@ -121,6 +123,8 @@ async def create_source_form(
         "end_time": col_end_time or None,
         "location": col_location or None,
         "description": col_description or None,
+        "home_team": col_home_team or None,
+        "away_team": col_away_team or None,
     }
 
     # Handle file upload
@@ -185,6 +189,8 @@ async def update_source_form(
     col_end_time: Optional[str] = Form(None),
     col_location: Optional[str] = Form(None),
     col_description: Optional[str] = Form(None),
+    col_home_team: Optional[str] = Form(None),
+    col_away_team: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
 ) -> RedirectResponse:
     existing = get_source(source_id)
@@ -198,6 +204,8 @@ async def update_source_form(
         "end_time": col_end_time or None,
         "location": col_location or None,
         "description": col_description or None,
+        "home_team": col_home_team or None,
+        "away_team": col_away_team or None,
     }
 
     upload_filename: Optional[str] = None

@@ -20,6 +20,8 @@ class ColumnMapping(BaseModel):
     end_time: Optional[str] = None
     location: Optional[str] = None
     description: Optional[str] = None
+    home_team: Optional[str] = None
+    away_team: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------

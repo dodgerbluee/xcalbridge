@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import os
 import re
 from datetime import datetime, date
 from pathlib import Path
@@ -21,8 +22,8 @@ from models import EventData
 
 _COLUMN_PATTERNS: Dict[str, List[str]] = {
     "event_name": [
-        r"event[\s_-]*name", r"title", r"summary", r"game", r"match",
-        r"opponent", r"event", r"activity", r"description",
+        r"event[\s_-]*name", r"title", r"summary", r"game",
+        r"opponent", r"event", r"activity",
     ],
     "date": [
         r"^date$", r"game[\s_-]*date", r"event[\s_-]*date", r"match[\s_-]*date",
@@ -41,6 +42,12 @@ _COLUMN_PATTERNS: Dict[str, List[str]] = {
     ],
     "description": [
         r"description", r"notes", r"details", r"comments", r"memo", r"info",
+    ],
+    "home_team": [
+        r"home[\s_-]*team", r"^home$",
+    ],
+    "away_team": [
+        r"away[\s_-]*team", r"^away$", r"visitor", r"visiting[\s_-]*team",
     ],
 }
 
@@ -193,6 +200,87 @@ def _parse_time(value: Any) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# Home/Away → event name helpers
+# ---------------------------------------------------------------------------
+
+def _find_common_prefix(names: List[str]) -> str:
+    """Find the longest common prefix among team names (word-boundary aligned)."""
+    if not names:
+        return ""
+    prefix = os.path.commonprefix(names)
+    # Trim to last complete word/space boundary
+    last_space = prefix.rfind(" ")
+    if last_space > 0:
+        return prefix[:last_space + 1]
+    return ""
+
+
+def _shorten_team(name: str, prefix: str) -> str:
+    """Strip the common org prefix to get a short team name."""
+    if prefix and name.startswith(prefix):
+        short = name[len(prefix):].strip()
+        if short:
+            return short
+    return name
+
+
+def _detect_my_team(df: pd.DataFrame, col_home: str, col_away: str) -> Optional[str]:
+    """Detect the user's team — the one that appears in every row.
+
+    In a team schedule export, the user's team appears in either
+    Home or Away for every single match.
+    """
+    from collections import Counter
+
+    all_teams: List[str] = []
+    for _, row in df.iterrows():
+        h = str(row.get(col_home, "")).strip() if pd.notna(row.get(col_home)) else ""
+        a = str(row.get(col_away, "")).strip() if pd.notna(row.get(col_away)) else ""
+        if h:
+            all_teams.append(h)
+        if a:
+            all_teams.append(a)
+
+    if not all_teams:
+        return None
+
+    # The user's team should appear in every row (once per row)
+    counter = Counter(all_teams)
+    num_rows = len(df.dropna(subset=[col_home, col_away], how="all"))
+    if num_rows == 0:
+        return None
+
+    # Team appearing the most is likely the user's team
+    most_common = counter.most_common(1)[0]
+    return most_common[0] if most_common[1] >= num_rows * 0.8 else None
+
+
+def _build_event_name(
+    row: Any,
+    col_home: str,
+    col_away: str,
+    my_team: Optional[str],
+    prefix: str,
+) -> str:
+    """Build 'vs <opponent>' or '@ <opponent>' event name."""
+    home = str(row.get(col_home, "")).strip() if pd.notna(row.get(col_home)) else ""
+    away = str(row.get(col_away, "")).strip() if pd.notna(row.get(col_away)) else ""
+
+    if my_team:
+        if home == my_team:
+            opponent = _shorten_team(away, prefix) if away else "TBD"
+            return f"vs {opponent}"
+        elif away == my_team:
+            opponent = _shorten_team(home, prefix) if home else "TBD"
+            return f"@ {opponent}"
+
+    # Fallback: no team detected — show "Home vs Away" shortened
+    h_short = _shorten_team(home, prefix) if home else "TBD"
+    a_short = _shorten_team(away, prefix) if away else "TBD"
+    return f"{h_short} vs {a_short}"
+
+
+# ---------------------------------------------------------------------------
 # DataFrame → EventData list
 # ---------------------------------------------------------------------------
 
@@ -209,16 +297,47 @@ def dataframe_to_events(
     col_end = column_mapping.get("end_time")
     col_loc = column_mapping.get("location")
     col_desc = column_mapping.get("description")
+    col_home = column_mapping.get("home_team")
+    col_away = column_mapping.get("away_team")
 
     if not col_date:
         return events
+
+    # Pre-compute home/away naming context if both columns are mapped
+    use_home_away = bool(col_home and col_away
+                         and col_home in df.columns
+                         and col_away in df.columns)
+    my_team = None  # type: Optional[str]
+    prefix = ""
+    if use_home_away:
+        assert col_home is not None and col_away is not None
+        my_team = _detect_my_team(df, col_home, col_away)
+        # Build a common prefix from all team names for shortening
+        all_names = set()  # type: set
+        for _, r in df.iterrows():
+            h = str(r.get(col_home, "")).strip() if pd.notna(r.get(col_home)) else ""
+            a = str(r.get(col_away, "")).strip() if pd.notna(r.get(col_away)) else ""
+            if h:
+                all_names.add(h)
+            if a:
+                all_names.add(a)
+        if len(all_names) >= 2:
+            prefix = _find_common_prefix(sorted(all_names))
 
     for _, row in df.iterrows():
         parsed_date = _parse_date(row.get(col_date) if col_date else None)
         if not parsed_date:
             continue  # skip rows without a valid date
 
-        event_name = str(row.get(col_event, "Event")).strip() if col_event and pd.notna(row.get(col_event)) else "Event"
+        # Build event name: prefer home/away logic, fall back to mapped column
+        if use_home_away:
+            assert col_home is not None and col_away is not None
+            event_name = _build_event_name(row, col_home, col_away, my_team, prefix)
+        elif col_event and pd.notna(row.get(col_event)):
+            event_name = str(row.get(col_event)).strip()
+        else:
+            event_name = "Event"
+
         start_time = _parse_time(row.get(col_start)) if col_start else None
         end_time = _parse_time(row.get(col_end)) if col_end else None
         location = str(row.get(col_loc, "")).strip() if col_loc and pd.notna(row.get(col_loc)) else None
