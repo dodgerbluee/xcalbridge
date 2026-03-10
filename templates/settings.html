@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - xCalBridge{% endblock %}
+
+{% block content %}
+<h2>Settings</h2>
+
+{% if saved %}
+<article class="success-article">
+    <p>Settings saved successfully.</p>
+</article>
+{% endif %}
+
+<form method="post" action="/settings">
+
+    <!-- AI / Ollama Settings -->
+    <fieldset>
+        <legend>AI Column Mapping (Ollama)</legend>
+        <p><small>Configure your self-hosted Ollama instance for intelligent column mapping suggestions.</small></p>
+
+        <label for="ollama_url">
+            Ollama URL
+            <input type="url" id="ollama_url" name="ollama_url"
+                   value="{{ settings.get('ollama_url', 'http://localhost:11434') }}"
+                   placeholder="http://localhost:11434">
+        </label>
+
+        <label for="ollama_model">
+            Model
+            <input type="text" id="ollama_model" name="ollama_model"
+                   value="{{ settings.get('ollama_model', 'llama3.2') }}"
+                   placeholder="llama3.2">
+            <small>e.g. llama3.2, mistral, gemma2, phi3</small>
+        </label>
+
+        <div>
+            <button type="button" class="outline secondary" id="test-ollama-btn"
+                    onclick="testOllamaConnection()">
+                Test Connection
+            </button>
+            <span id="ollama-status"></span>
+        </div>
+    </fieldset>
+
+    <!-- Sync Settings -->
+    <fieldset>
+        <legend>Sync Settings</legend>
+
+        <div class="grid">
+            <label for="sync_interval_hours">
+                Sync Interval (hours)
+                <input type="number" id="sync_interval_hours" name="sync_interval_hours"
+                       value="{{ settings.get('sync_interval_hours', '3') }}"
+                       min="1" max="168" step="1">
+                <small>How often to re-fetch and regenerate calendar feeds</small>
+            </label>
+
+            <label for="default_event_duration_minutes">
+                Default Event Duration (minutes)
+                <input type="number" id="default_event_duration_minutes" name="default_event_duration_minutes"
+                       value="{{ settings.get('default_event_duration_minutes', '90') }}"
+                       min="15" max="480" step="15">
+                <small>Used when no end time is provided in the spreadsheet</small>
+            </label>
+        </div>
+    </fieldset>
+
+    <!-- Submit -->
+    <div class="grid">
+        <button type="submit">Save Settings</button>
+        <a href="/" role="button" class="outline secondary cancel-btn">Cancel</a>
+    </div>
+</form>
+
+<script>
+function testOllamaConnection() {
+    var btn = document.getElementById('test-ollama-btn');
+    var status = document.getElementById('ollama-status');
+    var url = document.getElementById('ollama_url').value;
+
+    btn.setAttribute('aria-busy', 'true');
+    btn.textContent = 'Testing...';
+    status.textContent = '';
+
+    fetch('/api/test-ollama', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url: url})
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        btn.removeAttribute('aria-busy');
+        btn.textContent = 'Test Connection';
+        if (data.ok) {
+            status.textContent = 'Connected — ' + data.version;
+            status.style.color = 'var(--xcb-success)';
+        } else {
+            status.textContent = 'Failed: ' + data.error;
+            status.style.color = 'var(--xcb-error)';
+        }
+    })
+    .catch(function(err) {
+        btn.removeAttribute('aria-busy');
+        btn.textContent = 'Test Connection';
+        status.textContent = 'Error: ' + err.message;
+        status.style.color = 'var(--xcb-error)';
+    });
+}
+</script>
+{% endblock %}

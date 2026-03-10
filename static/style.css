@@ -138,3 +138,12 @@ footer.container {
     display: inline-block;
     box-sizing: border-box;
 }
+
+/* Settings success banner */
+.success-article {
+    border-left: 4px solid var(--xcb-success);
+}
+
+.success-article p {
+    margin: 0;
+}

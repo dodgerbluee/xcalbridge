@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from config import ensure_dirs
 from database import init_db
-from routes import api, feeds, ui
+from routes import api, feeds, settings, ui
 from services.scheduler import start_scheduler, stop_scheduler
 
 # Configure logging
@@ -51,6 +51,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Include routers
 app.include_router(api.router)
 app.include_router(feeds.router)
+app.include_router(settings.router)
 app.include_router(ui.router)
 
 

@@ -92,3 +92,15 @@ class EventData(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     all_day: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+class AppSettings(BaseModel):
+    """Application settings (persisted as key-value pairs in DB)."""
+    ollama_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.2"
+    sync_interval_hours: int = 3
+    default_event_duration_minutes: int = 90

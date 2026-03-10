@@ -61,13 +61,21 @@
         </label>
     </div>
 
-    <!-- Preview Button -->
+    <!-- Preview Button + Ask AI -->
     <div id="preview-section">
-        <button type="button" class="outline secondary"
-                id="preview-btn"
-                onclick="previewEvents()">
-            Preview Events
-        </button>
+        <div class="grid">
+            <button type="button" class="outline secondary"
+                    id="preview-btn"
+                    onclick="previewEvents()">
+                Preview Events
+            </button>
+            <button type="button" class="outline"
+                    id="ai-btn"
+                    onclick="askAI()">
+                Ask AI
+            </button>
+        </div>
+        <div id="ai-status"></div>
         <div id="preview-results" class="preview-container"></div>
     </div>
 
@@ -229,5 +237,91 @@ function previewEvents() {
 
 // Initialize field visibility on page load
 toggleSourceFields();
+
+function askAI() {
+    var formData = new FormData();
+    var sourceType = document.getElementById('source_type').value;
+
+    if (!sourceType) {
+        alert('Please select a source type first');
+        return;
+    }
+
+    formData.append('source_type', sourceType);
+
+    if (['excel_url', 'csv_url'].indexOf(sourceType) >= 0) {
+        var url = document.getElementById('source_url').value;
+        if (!url) {
+            alert('Please enter a source URL');
+            return;
+        }
+        formData.append('source_url', url);
+    } else {
+        var fileInput = document.getElementById('file');
+        if (!fileInput.files.length) {
+            alert('Please select a file');
+            return;
+        }
+        formData.append('file', fileInput.files[0]);
+    }
+
+    var btn = document.getElementById('ai-btn');
+    var status = document.getElementById('ai-status');
+    btn.setAttribute('aria-busy', 'true');
+    btn.textContent = 'Asking AI...';
+    status.textContent = '';
+
+    fetch('/api/ai-suggest', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Ask AI';
+
+            if (data.error) {
+                status.innerHTML = '<p class="error-msg">AI error: ' + data.error + '</p>';
+                return;
+            }
+
+            var mapping = data.mapping;
+            var columns = data.columns || [];
+
+            // Populate the column mapping dropdowns
+            var fields = ['col_event_name', 'col_date', 'col_start_time', 'col_end_time', 'col_location', 'col_description', 'col_home_team', 'col_away_team'];
+            var mapKeys = ['event_name', 'date', 'start_time', 'end_time', 'location', 'description', 'home_team', 'away_team'];
+
+            fields.forEach(function(fieldId, idx) {
+                var select = document.getElementById(fieldId);
+                if (!select) return;
+
+                // Clear existing options (keep first "not mapped" option)
+                while (select.options.length > 1) {
+                    select.remove(1);
+                }
+
+                // Add columns
+                columns.forEach(function(col) {
+                    var opt = document.createElement('option');
+                    opt.value = col;
+                    opt.textContent = col;
+                    var mapKey = mapKeys[idx];
+                    if (mapping[mapKey] === col) {
+                        opt.selected = true;
+                    }
+                    select.appendChild(opt);
+                });
+            });
+
+            // Open the column mapping section
+            var details = document.getElementById('column-mapping-section');
+            if (details) details.open = true;
+
+            status.innerHTML = '<p style="color: var(--xcb-success);">AI mapping applied. Review and adjust if needed.</p>';
+        })
+        .catch(function(err) {
+            btn.removeAttribute('aria-busy');
+            btn.textContent = 'Ask AI';
+            status.innerHTML = '<p class="error-msg">AI request failed: ' + err.message + '</p>';
+        });
+}
 </script>
 {% endblock %}

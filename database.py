@@ -3,7 +3,7 @@
 import json
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Dict, Optional
 
 from config import DB_PATH
 from models import Source, SourceCreate, SourceUpdate
@@ -25,6 +25,21 @@ CREATE TABLE IF NOT EXISTS sources (
 );
 """
 
+_CREATE_SETTINGS_TABLE = """
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"""
+
+# Default settings — inserted on first run if not present
+_DEFAULT_SETTINGS: Dict[str, str] = {
+    "ollama_url": "http://localhost:11434",
+    "ollama_model": "llama3.2",
+    "sync_interval_hours": "3",
+    "default_event_duration_minutes": "90",
+}
+
 
 def _get_conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -39,6 +54,13 @@ def init_db() -> None:
     """Initialize the database schema."""
     with _get_conn() as conn:
         conn.execute(_CREATE_TABLE)
+        conn.execute(_CREATE_SETTINGS_TABLE)
+        # Seed default settings (only inserts if key doesn't already exist)
+        for key, value in _DEFAULT_SETTINGS.items():
+            conn.execute(
+                "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)",
+                (key, value),
+            )
 
 
 def _row_to_source(row: sqlite3.Row) -> Source:
@@ -144,3 +166,34 @@ def update_column_mapping(source_id: int, mapping: dict) -> None:
             "UPDATE sources SET column_mapping=?, updated_at=? WHERE id=?",
             (mapping_json, now, source_id),
         )
+
+
+# ---------------------------------------------------------------------------
+# Settings CRUD
+# ---------------------------------------------------------------------------
+
+def get_all_settings() -> Dict[str, str]:
+    """Return all settings as a dict."""
+    with _get_conn() as conn:
+        rows = conn.execute("SELECT key, value FROM settings").fetchall()
+    return {row["key"]: row["value"] for row in rows}
+
+
+def get_setting(key: str) -> Optional[str]:
+    """Return a single setting value, or None if not found."""
+    with _get_conn() as conn:
+        row = conn.execute(
+            "SELECT value FROM settings WHERE key = ?", (key,)
+        ).fetchone()
+    return row["value"] if row else _DEFAULT_SETTINGS.get(key)
+
+
+def update_settings(settings: Dict[str, str]) -> None:
+    """Upsert multiple settings at once."""
+    with _get_conn() as conn:
+        for key, value in settings.items():
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (key, value),
+            )

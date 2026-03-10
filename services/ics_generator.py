@@ -14,6 +14,17 @@ from config import FEEDS_DIR
 from models import EventData
 
 
+def _get_default_duration() -> timedelta:
+    """Read default event duration from DB settings."""
+    try:
+        from database import get_setting
+        val = get_setting("default_event_duration_minutes")
+        minutes = int(val) if val else 90
+    except Exception:
+        minutes = 90
+    return timedelta(minutes=minutes)
+
+
 def _make_uid(source_id: int, event: EventData) -> str:
     """Generate a deterministic UID for an event.
 
@@ -59,8 +70,8 @@ def generate_ics(
                 end_str = f"{ev_data.date} {ev_data.end_time}"
                 e.end = datetime.strptime(end_str, "%Y-%m-%d %H:%M")
             else:
-                # Default to 1.5 hour duration for sports events
-                e.end = e.begin + timedelta(hours=1, minutes=30)
+                # Default duration from settings
+                e.end = e.begin + _get_default_duration()
 
         if ev_data.location:
             e.location = ev_data.location

@@ -8,11 +8,21 @@ from typing import Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from config import SYNC_INTERVAL_HOURS
+from database import get_setting
 
 logger = logging.getLogger(__name__)
 
 _scheduler: Optional[BackgroundScheduler] = None
+
+
+def _get_sync_interval() -> int:
+    """Read sync interval from DB settings, fall back to config default."""
+    try:
+        val = get_setting("sync_interval_hours")
+        return int(val) if val else 3
+    except Exception:
+        from config import SYNC_INTERVAL_HOURS
+        return SYNC_INTERVAL_HOURS
 
 
 def start_scheduler() -> None:
@@ -21,18 +31,33 @@ def start_scheduler() -> None:
 
     from services.sync import sync_all_sources
 
+    interval = _get_sync_interval()
     _scheduler = BackgroundScheduler()
     _scheduler.add_job(
         sync_all_sources,
-        trigger=IntervalTrigger(hours=SYNC_INTERVAL_HOURS),
+        trigger=IntervalTrigger(hours=interval),
         id="sync_all",
         name="Sync all calendar sources",
         replace_existing=True,
     )
     _scheduler.start()
-    logger.info(
-        "Scheduler started — syncing every %d hour(s)", SYNC_INTERVAL_HOURS
+    logger.info("Scheduler started — syncing every %d hour(s)", interval)
+
+
+def reschedule_sync(hours: int) -> None:
+    """Update the sync interval on a running scheduler."""
+    global _scheduler
+    if not _scheduler or not _scheduler.running:
+        logger.warning("Scheduler not running, cannot reschedule")
+        return
+
+    from services.sync import sync_all_sources
+
+    _scheduler.reschedule_job(
+        "sync_all",
+        trigger=IntervalTrigger(hours=hours),
     )
+    logger.info("Rescheduled sync job to every %d hour(s)", hours)
 
 
 def stop_scheduler() -> None:

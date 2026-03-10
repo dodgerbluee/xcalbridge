@@ -181,3 +181,61 @@ def api_sync_source(source_id: int) -> Dict[str, str]:
     # Run sync in background thread
     Thread(target=sync_source, args=(source,), daemon=True).start()
     return {"status": "sync_started"}
+
+
+# ---------------------------------------------------------------------------
+# Test Ollama connection
+# ---------------------------------------------------------------------------
+
+@router.post("/test-ollama")
+async def api_test_ollama(body: Dict[str, Any]) -> Dict[str, Any]:
+    from services.ai import test_ollama_connection
+    url = body.get("url", "http://localhost:11434")
+    return await test_ollama_connection(url)
+
+
+# ---------------------------------------------------------------------------
+# AI column mapping suggestion
+# ---------------------------------------------------------------------------
+
+@router.post("/ai-suggest")
+async def api_ai_suggest(
+    source_type: str = Form(...),
+    source_url: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+) -> Dict[str, Any]:
+    """Send spreadsheet columns + sample rows to Ollama for mapping suggestion."""
+    from services.ai import suggest_column_mapping
+    from services.parser import (
+        download_remote_source,
+        read_spreadsheet,
+        read_spreadsheet_from_bytes,
+    )
+
+    try:
+        # Parse the spreadsheet to get columns and sample data
+        if source_type in ("excel_upload", "csv_upload") and file and file.filename:
+            data = await file.read()
+            df = read_spreadsheet_from_bytes(data, source_type, file.filename)
+        elif source_type in ("excel_url", "csv_url") and source_url:
+            file_path = download_remote_source(source_url, source_type, "_ai_preview")
+            df = read_spreadsheet(file_path, source_type)
+            file_path.unlink(missing_ok=True)
+        else:
+            return {"error": "No file or URL provided", "mapping": {}}
+
+        columns = list(df.columns)
+        # Get first 3 rows as sample data
+        sample_rows = []
+        for _, row in df.head(3).iterrows():
+            sample_rows.append(
+                {col: str(val) if not (isinstance(val, float) and val != val) else ""
+                 for col, val in row.items()}
+            )
+
+        mapping = await suggest_column_mapping(columns, sample_rows)
+        return {"mapping": mapping, "columns": columns, "error": None}
+
+    except Exception as exc:
+        logger.exception("AI suggest failed")
+        return {"error": str(exc), "mapping": {}}
