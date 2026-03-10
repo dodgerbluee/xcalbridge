@@ -27,10 +27,12 @@
 
         <label for="ollama_model">
             Model
-            <input type="text" id="ollama_model" name="ollama_model"
-                   value="{{ settings.get('ollama_model', 'llama3.2') }}"
-                   placeholder="llama3.2">
-            <small>e.g. llama3.2, mistral, gemma2, phi3</small>
+            <select id="ollama_model" name="ollama_model">
+                <option value="{{ settings.get('ollama_model', 'llama3.2') }}" selected>
+                    {{ settings.get('ollama_model', 'llama3.2') }}
+                </option>
+            </select>
+            <small id="model-hint">Click "Test Connection" to discover available models</small>
         </label>
 
         <div>
@@ -92,7 +94,13 @@ function testOllamaConnection() {
         btn.removeAttribute('aria-busy');
         btn.textContent = 'Test Connection';
         if (data.ok) {
-            status.textContent = 'Connected — ' + data.version;
+            var models = data.models || [];
+            if (models.length > 0) {
+                populateModelDropdown(models);
+                status.textContent = 'Connected — ' + models.length + ' model(s) available';
+            } else {
+                status.textContent = 'Connected — no models found (pull one with "ollama pull")';
+            }
             status.style.color = 'var(--xcb-success)';
         } else {
             status.textContent = 'Failed: ' + data.error;
@@ -105,6 +113,39 @@ function testOllamaConnection() {
         status.textContent = 'Error: ' + err.message;
         status.style.color = 'var(--xcb-error)';
     });
+}
+
+function populateModelDropdown(models) {
+    var select = document.getElementById('ollama_model');
+    var currentVal = select.value;
+    var hint = document.getElementById('model-hint');
+
+    // Clear existing options
+    select.innerHTML = '';
+
+    // Add discovered models
+    var foundCurrent = false;
+    models.forEach(function(model) {
+        var opt = document.createElement('option');
+        opt.value = model;
+        opt.textContent = model;
+        if (model === currentVal) {
+            opt.selected = true;
+            foundCurrent = true;
+        }
+        select.appendChild(opt);
+    });
+
+    // If current saved model wasn't in the list, add it at top as selected
+    if (!foundCurrent && currentVal) {
+        var opt = document.createElement('option');
+        opt.value = currentVal;
+        opt.textContent = currentVal + ' (not found on server)';
+        opt.selected = true;
+        select.insertBefore(opt, select.firstChild);
+    }
+
+    hint.textContent = models.length + ' model(s) discovered';
 }
 </script>
 {% endblock %}

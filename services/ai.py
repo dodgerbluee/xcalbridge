@@ -76,20 +76,45 @@ def _get_ollama_config() -> tuple:
     return url.rstrip("/"), model
 
 
-async def test_ollama_connection(url: str) -> Dict[str, Any]:
-    """Test connectivity to an Ollama instance. Returns {ok, version?, error?}."""
+async def list_ollama_models(url: str) -> List[str]:
+    """Fetch available models from an Ollama instance via GET /api/tags."""
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"{url.rstrip('/')}/api/version")
+            resp = await client.get(f"{url.rstrip('/')}/api/tags")
             resp.raise_for_status()
             data = resp.json()
-            return {"ok": True, "version": data.get("version", "unknown")}
+
+        models = []
+        for m in data.get("models", []):
+            name = m.get("name", "")
+            # Strip ":latest" suffix for cleanliness
+            if name.endswith(":latest"):
+                name = name[:-7]
+            if name:
+                models.append(name)
+        return sorted(models)
+    except Exception as exc:
+        logger.warning("Could not list Ollama models: %s", exc)
+        return []
+
+
+async def test_ollama_connection(url: str) -> Dict[str, Any]:
+    """Test connectivity to an Ollama instance and discover available models."""
+    clean_url = url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(clean_url)
+            resp.raise_for_status()
     except httpx.ConnectError:
         return {"ok": False, "error": "Connection refused — is Ollama running?"}
     except httpx.TimeoutException:
         return {"ok": False, "error": "Connection timed out"}
     except Exception as exc:
         return {"ok": False, "error": str(exc)}
+
+    # Connection succeeded — discover models
+    models = await list_ollama_models(clean_url)
+    return {"ok": True, "models": models}
 
 
 async def suggest_column_mapping(
