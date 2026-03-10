@@ -133,3 +133,14 @@ def update_source_status(
                updated_at=? WHERE id=?""",
             (status, error_message, last_sync, now, source_id),
         )
+
+
+def update_column_mapping(source_id: int, mapping: dict) -> None:
+    """Persist a column mapping (e.g. from auto-detection) back to the DB."""
+    now = datetime.now(timezone.utc).isoformat()
+    mapping_json = json.dumps(mapping)
+    with _get_conn() as conn:
+        conn.execute(
+            "UPDATE sources SET column_mapping=?, updated_at=? WHERE id=?",
+            (mapping_json, now, source_id),
+        )

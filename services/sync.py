@@ -36,6 +36,7 @@ def sync_source(source: Source) -> None:
     """
     from database import update_source_status
     from services.parser import (
+        auto_detect_columns,
         download_remote_source,
         read_spreadsheet,
         dataframe_to_events,
@@ -67,7 +68,23 @@ def sync_source(source: Source) -> None:
             raise ValueError("Spreadsheet is empty or could not be parsed")
 
         # Step 3: Map columns → events
-        events = dataframe_to_events(df, source.column_mapping)
+        # Fall back to auto-detection if the stored mapping is empty/missing
+        mapping = source.column_mapping or {}
+        has_date = bool(mapping.get("date"))
+        if not has_date:
+            logger.info(
+                "Source '%s' has no date column mapped — running auto-detect",
+                source.name,
+            )
+            mapping = auto_detect_columns(list(df.columns))
+            # Persist the detected mapping so future syncs use it
+            from database import update_column_mapping
+            update_column_mapping(source_id, mapping)
+
+        logger.info(
+            "Source '%s' column mapping: %s", source.name, mapping
+        )
+        events = dataframe_to_events(df, mapping)
         if not events:
             raise ValueError(
                 "No events could be parsed. Check your column mapping."

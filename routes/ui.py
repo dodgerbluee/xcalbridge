@@ -125,6 +125,7 @@ async def create_source_form(
 
     # Handle file upload
     upload_filename: Optional[str] = None
+    file_bytes: Optional[bytes] = None
     if source_type in ("excel_upload", "csv_upload"):
         if not file or not file.filename:
             raise HTTPException(400, "File is required for upload source types")
@@ -132,9 +133,25 @@ async def create_source_form(
         upload_filename = f"{slug}{ext}"
         dest = UPLOADS_DIR / upload_filename
         UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+        file_bytes = await file.read()
         with open(dest, "wb") as f:
-            content = await file.read()
-            f.write(content)
+            f.write(file_bytes)
+
+    # Auto-detect columns if the user didn't map them (skipped preview)
+    if not mapping.get("date"):
+        try:
+            if file_bytes:
+                df = read_spreadsheet_from_bytes(file_bytes, source_type)
+            elif source_type in ("excel_url", "csv_url") and source_url:
+                tmp = download_remote_source(source_url, source_type, slug)
+                df = read_spreadsheet(tmp, source_type)
+            else:
+                df = None
+            if df is not None:
+                mapping = auto_detect_columns(list(df.columns))
+                logger.info("Auto-detected columns for '%s': %s", name, mapping)
+        except Exception:
+            logger.warning("Auto-detect failed for '%s', saving empty mapping", name)
 
     data = SourceCreate(
         name=name,
