@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="auto">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +15,7 @@
                 <li><a href="/"><strong>xCalBridge</strong></a></li>
             </ul>
             <ul>
+                <li><a href="#" role="button" class="outline theme-toggle" id="theme-toggle" onclick="toggleTheme(event)" aria-label="Toggle dark mode"></a></li>
                 <li><a href="/sources/new" role="button" class="outline">+ Add Source</a></li>
             </ul>
         </nav>
@@ -27,5 +28,41 @@
     <footer class="container">
         <small>xCalBridge &mdash; Convert sports schedules to ICS feeds</small>
     </footer>
+
+    <script>
+    (function() {
+        var root = document.documentElement;
+        var btn = document.getElementById('theme-toggle');
+        var saved = localStorage.getItem('xcb-theme');
+        if (saved === 'dark' || saved === 'light') {
+            root.setAttribute('data-theme', saved);
+        }
+        function updateIcon() {
+            var theme = root.getAttribute('data-theme');
+            if (theme === 'dark') {
+                btn.textContent = '\u2600';
+            } else if (theme === 'light') {
+                btn.textContent = '\u263E';
+            } else {
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                btn.textContent = prefersDark ? '\u2600' : '\u263E';
+            }
+        }
+        updateIcon();
+        window.toggleTheme = function(e) {
+            e.preventDefault();
+            var current = root.getAttribute('data-theme');
+            var next;
+            if (current === 'dark') {
+                next = 'light';
+            } else {
+                next = 'dark';
+            }
+            root.setAttribute('data-theme', next);
+            localStorage.setItem('xcb-theme', next);
+            updateIcon();
+        };
+    })();
+    </script>
 </body>
 </html>

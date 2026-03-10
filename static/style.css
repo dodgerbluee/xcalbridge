@@ -10,20 +10,25 @@
     --xcb-muted-bg: #adb5bd;
 }
 
-[data-theme="dark"],
-:root:not([data-theme="light"]) {
-    @media (prefers-color-scheme: dark) {
-        --xcb-success: #51cf66;
-        --xcb-error: #ff6b6b;
-        --xcb-warning: #ffd43b;
-        --xcb-muted-bg: #868e96;
-    }
+[data-theme="dark"] {
+    --xcb-success: #51cf66;
+    --xcb-error: #ff6b6b;
+    --xcb-warning: #ffd43b;
+    --xcb-muted-bg: #868e96;
 }
 
 /* Header */
 header.container nav {
     padding-top: 0.5rem;
     padding-bottom: 0.5rem;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+    font-size: 1.2em;
+    padding: 0.3em 0.6em;
+    line-height: 1;
+    cursor: pointer;
 }
 
 /* Status badges */
