@@ -21,17 +21,82 @@ xCalBridge acts as a universal bridge between sports schedule sources and ICS ca
 
 ```bash
 docker pull ghcr.io/dodgerbluee/xcalbridge:latest
-docker run -d -p 8080:8080 -v ./data:/data ghcr.io/dodgerbluee/xcalbridge:latest
+docker run -d -p 8080:8080 -v xcalbridge-data:/data ghcr.io/dodgerbluee/xcalbridge:latest
 ```
 
 ### Option 2: Build locally
 
 ```bash
-docker compose up -d
+git clone https://github.com/dodgerbluee/xcalbridge.git
+cd xcalbridge
+docker build -t xcalbridge .
+docker run -d -p 8080:8080 -v xcalbridge-data:/data xcalbridge
 ```
 
 - **Web UI:** http://localhost:8080
 - **ICS Feeds:** http://localhost:8080/feeds/{calendar_name}.ics
+
+## Homelab Deployment
+
+Copy the `docker-compose.yml` below (or clone the repo) and run `docker compose up -d`:
+
+```yaml
+services:
+  xcalbridge:
+    image: ghcr.io/dodgerbluee/xcalbridge:latest
+    container_name: xcalbridge
+    ports:
+      - "8080:8080"
+    volumes:
+      - xcalbridge-data:/data
+    environment:
+      - DATA_DIR=/data
+      - SYNC_INTERVAL_HOURS=3    # how often to re-fetch URL sources
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  xcalbridge-data:
+```
+
+### Behind a reverse proxy (Traefik, Caddy, nginx)
+
+If you run a reverse proxy, drop the `ports` section and add your proxy labels. For example with **Traefik**:
+
+```yaml
+services:
+  xcalbridge:
+    image: ghcr.io/dodgerbluee/xcalbridge:latest
+    container_name: xcalbridge
+    volumes:
+      - xcalbridge-data:/data
+    environment:
+      - DATA_DIR=/data
+      - SYNC_INTERVAL_HOURS=3
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.xcalbridge.rule=Host(`cal.yourdomain.com`)"
+      - "traefik.http.routers.xcalbridge.entrypoints=websecure"
+      - "traefik.http.routers.xcalbridge.tls.certresolver=letsencrypt"
+      - "traefik.http.services.xcalbridge.loadbalancer.server.port=8080"
+    networks:
+      - proxy
+
+volumes:
+  xcalbridge-data:
+
+networks:
+  proxy:
+    external: true
+```
+
+Then subscribe to feeds at `https://cal.yourdomain.com/feeds/{calendar_name}.ics` from any calendar app.
 
 ## Features
 
@@ -106,7 +171,7 @@ Run locally without Docker:
 
 ```bash
 pip install -r requirements.txt
-python -m xcalbridge.main
+uvicorn main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 The app will be available at http://localhost:8080 with auto-reload enabled.
@@ -114,22 +179,22 @@ The app will be available at http://localhost:8080 with auto-reload enabled.
 ## Architecture
 
 ```
-xcalbridge/
-  main.py              # FastAPI app, lifespan, router mounts
-  config.py            # Settings and path constants
-  database.py          # SQLite CRUD operations
-  models.py            # Pydantic models
-  routes/
-    api.py             # REST API endpoints
-    feeds.py           # ICS feed serving
-    ui.py              # HTMX-powered web UI
-  services/
-    parser.py          # Excel/CSV parsing + column detection
-    ics_generator.py   # ICS file generation (ics.py)
-    sync.py            # Sync pipeline orchestration
-    scheduler.py       # APScheduler background worker
-  templates/           # Jinja2 + HTMX templates
-  static/              # CSS
+main.py              # FastAPI app, lifespan, router mounts
+config.py            # Settings and path constants
+database.py          # SQLite CRUD operations
+models.py            # Pydantic models
+routes/
+  api.py             # REST API endpoints
+  feeds.py           # ICS feed serving
+  ui.py              # HTMX-powered web UI
+services/
+  parser.py          # Excel/CSV parsing + column detection
+  ics_generator.py   # ICS file generation (ics.py)
+  sync.py            # Sync pipeline orchestration
+  scheduler.py       # APScheduler background worker
+templates/           # Jinja2 + HTMX templates
+static/              # CSS
+data/                # SQLite DB, feeds, uploads (mounted volume in Docker)
 ```
 
 ## CI/CD

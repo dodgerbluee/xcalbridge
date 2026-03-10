@@ -4,6 +4,20 @@
 
 :root {
     --pico-font-size: 16px;
+    --xcb-success: #2ecc40;
+    --xcb-error: #e63946;
+    --xcb-warning: #ffbe0b;
+    --xcb-muted-bg: #adb5bd;
+}
+
+[data-theme="dark"],
+:root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+        --xcb-success: #51cf66;
+        --xcb-error: #ff6b6b;
+        --xcb-warning: #ffd43b;
+        --xcb-muted-bg: #868e96;
+    }
 }
 
 /* Header */
@@ -24,22 +38,22 @@ header.container nav {
 }
 
 .status-synced {
-    background: #2ecc40;
+    background: var(--xcb-success);
     color: #fff;
 }
 
 .status-pending {
-    background: #adb5bd;
+    background: var(--xcb-muted-bg);
     color: #fff;
 }
 
 .status-syncing {
-    background: #ffbe0b;
+    background: var(--xcb-warning);
     color: #333;
 }
 
 .status-error {
-    background: #e63946;
+    background: var(--xcb-error);
     color: #fff;
     cursor: help;
 }
@@ -60,8 +74,8 @@ header.container nav {
 }
 
 .delete-btn {
-    --pico-color: #e63946;
-    --pico-border-color: #e63946;
+    --pico-color: var(--xcb-error);
+    --pico-border-color: var(--xcb-error);
 }
 
 /* Feed URL code blocks */
@@ -86,11 +100,11 @@ header.container nav {
 }
 
 .error-article {
-    border-left: 4px solid #e63946;
+    border-left: 4px solid var(--xcb-error);
 }
 
 .error-msg {
-    color: #e63946;
+    color: var(--xcb-error);
 }
 
 /* Table responsiveness */
@@ -110,4 +124,12 @@ footer.container {
 .sync-time {
     font-size: 0.85em;
     white-space: nowrap;
+}
+
+/* Cancel button — match submit button width in grid */
+.cancel-btn {
+    width: 100%;
+    text-align: center;
+    display: inline-block;
+    box-sizing: border-box;
 }

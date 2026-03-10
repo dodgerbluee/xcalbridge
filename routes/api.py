@@ -11,16 +11,16 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Query
 from fastapi.responses import JSONResponse
 
-from xcalbridge.config import UPLOADS_DIR
-from xcalbridge.database import (
+from config import UPLOADS_DIR
+from database import (
     create_source,
     delete_source,
     get_source,
     list_sources,
     update_source,
 )
-from xcalbridge.models import SourceCreate, SourceUpdate
-from xcalbridge.services.sync import delete_source_files, slugify, sync_source
+from models import SourceCreate, SourceUpdate
+from services.sync import delete_source_files, slugify, sync_source
 
 logger = logging.getLogger(__name__)
 

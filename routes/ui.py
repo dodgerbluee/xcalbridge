@@ -11,28 +11,28 @@ from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from xcalbridge.config import UPLOADS_DIR
-from xcalbridge.database import (
+from config import UPLOADS_DIR
+from database import (
     create_source,
     delete_source,
     get_source,
     list_sources,
     update_source,
 )
-from xcalbridge.models import SourceCreate, SourceUpdate
-from xcalbridge.services.parser import (
+from models import SourceCreate, SourceUpdate
+from services.parser import (
     auto_detect_columns,
     dataframe_to_events,
     download_remote_source,
     read_spreadsheet,
     read_spreadsheet_from_bytes,
 )
-from xcalbridge.services.sync import delete_source_files, slugify, sync_source
+from services.sync import delete_source_files, slugify, sync_source
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-templates = Jinja2Templates(directory="xcalbridge/templates")
+templates = Jinja2Templates(directory="templates")
 
 
 # ---------------------------------------------------------------------------
@@ -239,7 +239,7 @@ def sync_source_ui(request: Request, source_id: int) -> HTMLResponse:
     Thread(target=sync_source, args=(source,), daemon=True).start()
 
     # Return updated row (will show "syncing" status)
-    from xcalbridge.database import update_source_status
+    from database import update_source_status
     update_source_status(source_id, "syncing")
     sources = list_sources()
     return templates.TemplateResponse("partials/sources_table.html", {

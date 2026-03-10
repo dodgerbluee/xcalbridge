@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Optional
 import httpx
 import pandas as pd
 
-from xcalbridge.config import UPLOADS_DIR
-from xcalbridge.models import EventData
+from config import UPLOADS_DIR
+from models import EventData
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +180,9 @@ def _parse_time(value: Any) -> Optional[str]:
     s = str(value).strip()
     if not s:
         return None
+
+    # Strip trailing timezone abbreviations (e.g. "11:00 CST", "6:30 PM EDT")
+    s = re.sub(r"\s+[A-Z]{2,5}$", "", s)
 
     for fmt in _TIME_FORMATS:
         try:

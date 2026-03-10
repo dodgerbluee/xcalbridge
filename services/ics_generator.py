@@ -10,8 +10,8 @@ from typing import List
 from ics import Calendar, Event
 from ics.grammar.parse import ContentLine
 
-from xcalbridge.config import FEEDS_DIR
-from xcalbridge.models import EventData
+from config import FEEDS_DIR
+from models import EventData
 
 
 def _make_uid(source_id: int, event: EventData) -> str:

@@ -5,8 +5,8 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Optional
 
-from xcalbridge.config import DB_PATH
-from xcalbridge.models import Source, SourceCreate, SourceUpdate
+from config import DB_PATH
+from models import Source, SourceCreate, SourceUpdate
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS sources (
@@ -101,7 +101,7 @@ def update_source(source_id: int, data: SourceUpdate, upload_filename: Optional[
         mapping_json = json.dumps(existing.column_mapping)
 
     # Regenerate slug if name changed
-    from xcalbridge.services.sync import slugify
+    from services.sync import slugify
     slug = slugify(name)
 
     with _get_conn() as conn:

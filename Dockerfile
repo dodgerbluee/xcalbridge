@@ -12,11 +12,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY xcalbridge/ xcalbridge/
+COPY main.py config.py database.py models.py ./
+COPY routes/ routes/
+COPY services/ services/
+COPY templates/ templates/
+COPY static/ static/
 
 # Create data directories
 RUN mkdir -p /data/feeds /data/uploads
 
 EXPOSE 8080
 
-CMD ["uvicorn", "xcalbridge.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

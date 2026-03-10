@@ -9,10 +9,10 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from xcalbridge.config import ensure_dirs
-from xcalbridge.database import init_db
-from xcalbridge.routes import api, feeds, ui
-from xcalbridge.services.scheduler import start_scheduler, stop_scheduler
+from config import ensure_dirs
+from database import init_db
+from routes import api, feeds, ui
+from services.scheduler import start_scheduler, stop_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -46,7 +46,7 @@ app = FastAPI(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="xcalbridge/static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Include routers
 app.include_router(api.router)
@@ -56,6 +56,6 @@ app.include_router(ui.router)
 
 if __name__ == "__main__":
     import uvicorn
-    from xcalbridge.config import HOST, PORT
+    from config import HOST, PORT
 
-    uvicorn.run("xcalbridge.main:app", host=HOST, port=PORT, reload=True)
+    uvicorn.run("main:app", host=HOST, port=PORT, reload=True)

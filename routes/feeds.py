@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
-from xcalbridge.config import FEEDS_DIR
+from config import FEEDS_DIR
 
 router = APIRouter()
 

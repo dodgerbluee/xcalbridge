@@ -8,8 +8,8 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
-from xcalbridge.config import FEEDS_DIR, UPLOADS_DIR
-from xcalbridge.models import Source
+from config import FEEDS_DIR, UPLOADS_DIR
+from models import Source
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +34,13 @@ def sync_source(source: Source) -> None:
     4. Generate ICS and write to /data/feeds/{slug}.ics
     5. Update DB status
     """
-    from xcalbridge.database import update_source_status
-    from xcalbridge.services.parser import (
+    from database import update_source_status
+    from services.parser import (
         download_remote_source,
         read_spreadsheet,
         dataframe_to_events,
     )
-    from xcalbridge.services.ics_generator import generate_ics
+    from services.ics_generator import generate_ics
 
     source_id = source.id
     update_source_status(source_id, "syncing")
@@ -90,7 +90,7 @@ def sync_source(source: Source) -> None:
 
 def sync_all_sources() -> None:
     """Sync every configured source. Called by the scheduler."""
-    from xcalbridge.database import list_sources
+    from database import list_sources
 
     sources = list_sources()
     logger.info("Starting scheduled sync for %d source(s)", len(sources))

@@ -8,7 +8,7 @@ from typing import Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from xcalbridge.config import SYNC_INTERVAL_HOURS
+from config import SYNC_INTERVAL_HOURS
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def start_scheduler() -> None:
     """Start the background sync scheduler."""
     global _scheduler
 
-    from xcalbridge.services.sync import sync_all_sources
+    from services.sync import sync_all_sources
 
     _scheduler = BackgroundScheduler()
     _scheduler.add_job(
